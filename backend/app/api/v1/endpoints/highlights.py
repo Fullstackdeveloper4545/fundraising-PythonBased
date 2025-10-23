@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 import logging
 
-from app.core.database import get_supabase
+from app.core.database import get_supabase, get_supabase_admin
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.services.student_highlight_service import StudentHighlightService
@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 async def get_current_highlighted_student():
     """Get the currently highlighted student"""
     try:
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for public data access
+        supabase = get_supabase_admin()
         highlight_service = StudentHighlightService(supabase)
         
         highlight = await highlight_service.get_current_highlighted_student()
@@ -33,7 +34,8 @@ async def get_current_highlighted_student():
 async def get_highlighted_donors(limit: int = Query(10, le=50)):
     """Get list of highlighted donors"""
     try:
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for public data access
+        supabase = get_supabase_admin()
         highlight_service = StudentHighlightService(supabase)
         
         donors = await highlight_service.get_highlighted_donors(limit)
@@ -47,7 +49,8 @@ async def get_highlighted_donors(limit: int = Query(10, le=50)):
 async def get_weekly_highlights():
     """Get weekly student highlights"""
     try:
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for public data access
+        supabase = get_supabase_admin()
         highlight_service = StudentHighlightService(supabase)
         
         highlights = await highlight_service.get_weekly_highlights()
@@ -68,7 +71,8 @@ async def get_student_achievements(
         if user_id != current_user.id and current_user.role != "admin":
             raise HTTPException(status_code=403, detail="Not authorized to view these achievements")
         
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for admin operations
+        supabase = get_supabase_admin()
         highlight_service = StudentHighlightService(supabase)
         
         achievements = await highlight_service.get_student_achievements(user_id)
@@ -91,7 +95,8 @@ async def create_student_highlight(
         if current_user.role != "admin":
             raise HTTPException(status_code=403, detail="Admin access required")
         
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for admin operations
+        supabase = get_supabase_admin()
         highlight_service = StudentHighlightService(supabase)
         
         result = await highlight_service.create_student_highlight(

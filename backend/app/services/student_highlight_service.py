@@ -18,7 +18,7 @@ class StudentHighlightService:
         try:
             # Get the most recent highlighted student
             result = self.supabase.table("student_highlights").select(
-                "*, users(*), campaigns(*)"
+                "*, users(first_name, last_name)"
             ).eq("is_active", True).order("created_at", desc=True).limit(1).execute()
             
             if not result.data:
@@ -31,9 +31,6 @@ class StudentHighlightService:
                 "achievement": highlight_data["achievement"],
                 "description": highlight_data["description"],
                 "image_url": highlight_data["image_url"],
-                "campaign_title": highlight_data["campaigns"]["title"],
-                "campaign_goal": highlight_data["campaigns"]["goal_amount"],
-                "campaign_raised": highlight_data["campaigns"]["current_amount"],
                 "highlighted_at": highlight_data["created_at"]
             }
         except Exception as e:
@@ -51,8 +48,7 @@ class StudentHighlightService:
         try:
             # Deactivate current highlights
             self.supabase.table("student_highlights").update({
-                "is_active": False,
-                "updated_at": datetime.utcnow().isoformat()
+                "is_active": False
             }).eq("is_active", True).execute()
             
             # Create new highlight
@@ -122,7 +118,7 @@ class StudentHighlightService:
             week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
             
             result = self.supabase.table("student_highlights").select(
-                "*, users(first_name, last_name), campaigns(title, goal_amount, current_amount)"
+                "*, users(first_name, last_name)"
             ).gte("created_at", week_ago).order("created_at", desc=True).execute()
             
             highlights = []
@@ -134,8 +130,6 @@ class StudentHighlightService:
                         "achievement": highlight["achievement"],
                         "description": highlight["description"],
                         "image_url": highlight["image_url"],
-                        "campaign_title": highlight["campaigns"]["title"],
-                        "campaign_progress": float(highlight["campaigns"]["current_amount"]) / float(highlight["campaigns"]["goal_amount"]) * 100,
                         "created_at": highlight["created_at"]
                     })
             
