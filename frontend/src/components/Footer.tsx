@@ -3,13 +3,13 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="bg-blue-600 border-t border-blue-500">
+    <footer className="bg-[#00AFF0] border-t border-[#0099D6]">
       <div className="mx-auto max-w-7xl px-4 py-12">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
+              <div className="h-8 w-8 rounded-lg bg-[#00AFF0] flex items-center justify-center">
                 <span className="text-white font-bold text-sm">F</span>
               </div>
               <span className="text-xl font-bold text-white">
@@ -165,7 +165,7 @@ export default function Footer() {
             <div className="flex items-center space-x-4">
               <span className="text-xs text-white/70">Secure payments:</span>
               <div className="flex items-center space-x-2">
-                <div className="payment-badge h-6 w-10 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">
+                <div className="payment-badge h-6 w-10 bg-[#00AFF0] rounded text-white text-xs flex items-center justify-center font-bold">
                   VISA
                 </div>
                 <div className="payment-badge h-6 w-10 bg-red-600 rounded text-white text-xs flex items-center justify-center font-bold">

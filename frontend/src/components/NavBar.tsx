@@ -45,10 +45,10 @@ export default function NavBar() {
     });
   };
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-blue-600/90 backdrop-blur-sm">
+    <header className="sticky top-0 z-40 w-full border-b bg-[#00AFF0]/90 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">HS</span>
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#00AFF0] text-sm font-bold text-white">HS</span>
           <span className="text-lg text-white">HighSchool Fund</span>
         </Link>
         <nav className="flex items-center gap-2 sm:gap-4 text-sm">
@@ -65,7 +65,7 @@ export default function NavBar() {
           {user ? (
             <div className="flex items-center gap-2 sm:gap-3">
               {user.role === "admin" && (
-                <Link href="/admin" className="hidden sm:inline text-white hover:text-blue-200 font-medium">
+                <Link href="/admin" className="hidden sm:inline text-white hover:text-white/80 font-medium">
                   Dashboard
                 </Link>
               )}

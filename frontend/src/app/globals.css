@@ -5,19 +5,19 @@
   --foreground: #0f172a; /* slate-900 */
   --muted: #475569;      /* slate-600 */
 
-  /* Brand blues */
-  --brand-50:  #eff6ff;
-  --brand-100: #dbeafe;
-  --brand-200: #bfdbfe;
-  --brand-300: #93c5fd;
-  --brand-400: #60a5fa;
-  --brand-500: #3b82f6; /* primary */
-  --brand-600: #2563eb; /* hover */
-  --brand-700: #1d4ed8; /* active */
+  /* Brand blues (custom theme) */
+  --brand-50:  #e6f8ff;
+  --brand-100: #ccefff;
+  --brand-200: #99dfff;
+  --brand-300: #66cfff;
+  --brand-400: #33bfff;
+  --brand-500: #00AFF0; /* primary */
+  --brand-600: #00AFF0; /* primary/base */
+  --brand-700: #0099D6; /* hover/active */
 
   --card: #ffffff;
   --border: #e5e7eb;
-  --ring: rgba(37, 99, 235, 0.2);
+  --ring: rgba(0, 175, 240, 0.2);
   
   /* Danger colors for logout */
   --danger-50: #fef2f2;
@@ -50,7 +50,7 @@ body {
 /* Primary button - Always blue */
 .btn-primary {
   background-color: var(--brand-600);
-  color: white;
+  color: #ffffff !important;
   padding: 0.75rem 1.5rem; /* Increased for mobile */
   border-radius: 0.75rem;  /* More rounded for mobile */
   box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
@@ -95,7 +95,7 @@ body {
 /* Secondary button - Always blue */
 .btn-secondary {
   background-color: var(--brand-600);
-  color: white;
+  color: #ffffff !important;
   padding: 0.75rem 1.5rem;
   border-radius: 0.75rem;
   border: none;
@@ -209,6 +209,29 @@ a:hover {
   text-decoration: underline;
 }
 
+/* Ensure link-styled buttons render white text across the whole clickable area */
+a.btn-primary,
+a.btn-secondary,
+a.btn-logout {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+a.btn-primary:hover,
+a.btn-secondary:hover,
+a.btn-logout:hover {
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+/* If someone nests a link inside a button, keep text white and make the button the only click target */
+.btn-primary a,
+.btn-secondary a,
+.btn-logout a {
+  color: #ffffff !important;
+  text-decoration: none !important;
+  pointer-events: none; /* avoid only-the-text being clickable */
+}
+
 /* Global text styling for theme consistency */
 h1, h2, h3, h4, h5, h6 {
   color: var(--foreground);
@@ -244,7 +267,7 @@ p, span, div {
 }
 
 .border-theme {
-  border-color: var(--border);
+  /* border-color: var(--border); */
 }
 
 /* Progress bar styling */
@@ -283,7 +306,7 @@ p, span, div {
 
 /* Footer specific styles - Blue theme */
 footer {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  /* background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); */
   color: white;
 }
 
@@ -306,7 +329,7 @@ footer p, footer span {
 
 /* Navbar specific styles - Blue theme */
 header {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  /* background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); */
   color: white;
 }
 
@@ -463,13 +486,16 @@ html {
 /* Logout button styling - Always blue */
 .btn-logout {
   background-color: var(--brand-600);
-  color: white;
+  color: #ffffff !important;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-weight: 600;
   transition: background-color 150ms ease, transform 100ms ease;
   border: none;
 }
+
+/* Ensure nested elements (icons/spans) inside buttons also render white */
+.btn-primary *, .btn-secondary *, .btn-logout * { color: #ffffff !important; }
 
 .btn-logout:hover {
   background-color: var(--brand-700);

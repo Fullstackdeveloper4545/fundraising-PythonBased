@@ -27,7 +27,7 @@ export default function HomePage() {
               </p>
               <Link 
                 href="/create-campaign"
-                className="inline-block bg-[#00AFF0] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#0099D6] transition-colors"
+                className="btn-primary inline-block px-8 py-4 text-lg"
               >
                 Start a Free Fundraiser
               </Link>
@@ -149,7 +149,7 @@ export default function HomePage() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="bg-[#00AFF0] h-2 rounded-full" style={{width: '49%'}}></div>
-                  </div>
+        </div>
                 </div>
                 <div className="text-center">
                   <div className="text-lg font-bold text-gray-900">49% Funded</div>
@@ -295,7 +295,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link 
                 href="/create-campaign"
-                className="bg-[#00AFF0] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#0099D6] transition-colors"
+                className="btn-primary inline-block px-8 py-4 text-lg"
               >
                 START A FREE FUNDRAISER
               </Link>
@@ -347,10 +347,10 @@ export default function HomePage() {
             <div>
               <Link 
                 href="/create-campaign"
-                className="bg-[#00AFF0] text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#0099D6] transition-colors"
+                className="btn-primary inline-block px-8 py-4 text-lg"
               >
                 START A FREE FUNDRAISER
-              </Link>
+            </Link>
             </div>
           </div>
         </div>
