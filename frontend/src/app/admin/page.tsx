@@ -1,11 +1,12 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import type { Campaign, User } from "@/types/api";
 import { useAuth } from "@/context/AuthContext";
 import Swal from "sweetalert2";
 import StudentProfileModal from "@/components/StudentProfileModal";
+import AdminSidebar from "@/components/AdminSidebar";
 
 interface PlatformStats {
   total_users: number;
@@ -49,7 +50,33 @@ export default function AdminDashboard() {
     video_url: "",
     story: "",
   });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // removed local modal state in favor of SweetAlert2
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setCreateForm({ ...createForm, image_url: "" }); // Clear URL when file is selected
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   useEffect(() => {
     if (!token || !user || user.role !== "admin") {
@@ -107,11 +134,46 @@ export default function AdminDashboard() {
 
   const handleCreateCampaign = async () => {
     try {
-      await apiFetch(`/campaigns/`, { method: "POST", token, body: createForm });
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+      
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append("title", createForm.title);
+      formData.append("description", createForm.description);
+      formData.append("goal_amount", createForm.goal_amount.toString());
+      formData.append("duration_months", createForm.duration_months);
+      formData.append("category", createForm.category);
+      formData.append("story", createForm.story);
+      formData.append("video_url", createForm.video_url);
+      
+      if (selectedFile) {
+        formData.append("image_file", selectedFile);
+      } else if (createForm.image_url) {
+        formData.append("image_url", createForm.image_url);
+      }
+      
+      const response = await fetch(`${API_BASE_URL}/campaigns/with-image`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Request failed: ${response.status}`);
+      }
+      
       const campaignsData = await apiFetch<Campaign[]>(`/admin/campaigns`, { token });
       setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
       setShowCreate(false);
       setCreateForm({ title: "", description: "", goal_amount: 1000, duration_months: "3", category: "", image_url: "", video_url: "", story: "" });
+      setSelectedFile(null);
+      setImagePreview(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to create campaign");
     }
@@ -260,32 +322,32 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-blue-600/90 shadow backdrop-blur supports-[backdrop-filter]:backdrop-blur">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center mr-3 shadow-sm">
-                <svg className="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                </svg>
-              </div>
+    <div className="h-screen w-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <div className="w-64 bg-[#00AFF0] h-screen flex flex-col">
+        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col bg-white h-screen">
+        {/* Top Header */}
+        <div className="bg-white shadow-sm border-b border-gray-200">
+          <div className="px-6 py-4">
+            <div className="flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-white">Admin Dashboard</h1>
-                <p className="text-sm text-white/90">Welcome back, {user?.first_name}</p>
-              </div>
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-sm text-gray-600">Welcome back, {user?.first_name}</p>
             </div>
             <div className="flex items-center space-x-4">
               <a
                 href="/"
-                className="text-sm text-white/90 hover:text-white transition-colors"
+                  className="text-sm text-gray-600 hover:text-[#00AFF0] transition-colors"
               >
                 View Site
               </a>
               <button
                 onClick={handleLogoutClick}
-                className="text-sm text-white/90 hover:text-white transition-colors"
+                  className="text-sm text-gray-600 hover:text-[#00AFF0] transition-colors"
               >
                 Logout
               </button>
@@ -294,73 +356,16 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-2">
-          <nav className="flex gap-1">
-            {[
-              { 
-                id: 'overview', 
-                name: 'Overview', 
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                )
-              },
-              { 
-                id: 'campaigns', 
-                name: 'Campaigns', 
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                )
-              },
-              { 
-                id: 'users', 
-                name: 'Users', 
-                icon: (
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                )
-              },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium text-sm transition-all duration-200 ${
-                  activeTab === tab.id
-                    ? 'bg-blue-600 text-white shadow-lg transform scale-105'
-                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                }`}
-              >
-                <span className={`transition-colors ${
-                  activeTab === tab.id ? 'text-white' : 'text-gray-500'
-                }`}>
-                  {tab.icon}
-                </span>
-                <span>{tab.name}</span>
-                {activeTab === tab.id && (
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                )}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+        {/* Content */}
+        <div className="flex-1 p-2 bg-white overflow-y-auto">
         {activeTab === 'overview' && (
-          <div className="space-y-8">
+          <div className="space-y-3 h-full">
             {/* Welcome Section */}
-            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl">
+            <div className="bg-gradient-to-r from-[#00AFF0] to-[#0099D6] rounded-xl p-4 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-3xl font-bold mb-2">Welcome back, {user?.first_name}!</h2>
-                  <p className="text-indigo-100 text-lg">Here's what's happening with your platform today</p>
+                  <h2 className="text-2xl font-bold mb-1">Welcome back, {user?.first_name}!</h2>
+                  <p className="text-white/90 text-sm">Here's what's happening with your platform today</p>
                 </div>
                 <div className="hidden md:block">
                   <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -373,15 +378,15 @@ export default function AdminDashboard() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               <div className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-                <div className="p-6">
+                <div className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Users</p>
                       <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.total_users || 0}</p>
                     </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#00AFF0] to-[#0099D6] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                       </svg>
@@ -397,13 +402,13 @@ export default function AdminDashboard() {
               </div>
 
               <div className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-                <div className="p-6">
+                <div className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Campaigns</p>
                       <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.total_campaigns || 0}</p>
                     </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#00AFF0] to-[#0099D6] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                       </svg>
@@ -419,13 +424,13 @@ export default function AdminDashboard() {
               </div>
 
               <div className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-                <div className="p-6">
+                <div className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Total Raised</p>
                       <p className="text-3xl font-bold text-gray-900 mt-2">${(stats?.total_donations || 0).toLocaleString()}</p>
                     </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#00AFF0] to-[#0099D6] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                       </svg>
@@ -441,13 +446,13 @@ export default function AdminDashboard() {
               </div>
 
               <div className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
-                <div className="p-6">
+                <div className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
                       <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.active_campaigns || 0}</p>
                     </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-[#00AFF0] to-[#0099D6] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
@@ -464,15 +469,15 @@ export default function AdminDashboard() {
             </div>
 
             {/* Quick Actions */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2">
                 <button 
                   onClick={() => setActiveTab('campaigns')}
-                  className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-10 h-10 bg-[#00AFF0]/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-[#00AFF0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
                   </div>
@@ -484,7 +489,7 @@ export default function AdminDashboard() {
                 
                 <button 
                   onClick={() => setActiveTab('users')}
-                  className="flex items-center space-x-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="flex items-center space-x-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
                   <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                     <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -516,11 +521,11 @@ export default function AdminDashboard() {
         {activeTab === 'campaigns' && (
           <div className="space-y-6">
             {/* Header Section */}
-            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-r from-[#00AFF0] to-[#0099D6] rounded-xl p-6 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold">Campaign Management</h3>
-                  <p className="mt-1 text-blue-100">Monitor and manage all fundraising campaigns</p>
+                  <p className="mt-1 text-white/90">Monitor and manage all fundraising campaigns</p>
                 </div>
                 <button 
                   onClick={() => setShowCreate(true)} 
@@ -576,7 +581,7 @@ export default function AdminDashboard() {
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div 
-                            className="bg-gradient-to-r from-blue-500 to-indigo-500 h-2 rounded-full transition-all duration-500"
+                            className="bg-gradient-to-r from-[#00AFF0] to-[#0099D6] h-2 rounded-full transition-all duration-500"
                             style={{ width: `${Math.min(100, (campaign.current_amount / campaign.goal_amount) * 100)}%` }}
                           ></div>
                         </div>
@@ -600,7 +605,7 @@ export default function AdminDashboard() {
                         </button>
                         <button
                           onClick={() => setSelectedCampaign(campaign)}
-                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-all duration-200"
+                          className="text-xs bg-[#00AFF0] hover:bg-[#0099D6] text-white px-3 py-1.5 rounded-lg font-medium transition-all duration-200"
                           title="View campaign details"
                         >
                           View Details
@@ -618,7 +623,7 @@ export default function AdminDashboard() {
                           }
                         }}
                         value={campaign.status}
-                        className="text-xs rounded-lg border border-gray-300 px-2 py-1 bg-white text-gray-700 hover:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-400/50 transition"
+                        className="text-xs rounded-lg border border-gray-300 px-2 py-1 bg-white text-gray-700 hover:border-[#00AFF0] focus:outline-none focus:ring-2 focus:ring-[#00AFF0]/50 transition"
                         title="Set campaign status"
                       >
                         {['draft','active','paused','completed','cancelled','expired'].map(s => (
@@ -655,11 +660,11 @@ export default function AdminDashboard() {
         {activeTab === 'users' && (
           <div className="space-y-6">
             {/* Header Section */}
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-6 text-white shadow-lg">
+            <div className="bg-gradient-to-r from-[#00AFF0] to-[#0099D6] rounded-xl p-6 text-white shadow-lg">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-2xl font-bold">User Management</h3>
-                  <p className="mt-1 text-purple-100">Manage user accounts and permissions</p>
+                  <p className="mt-1 text-white/90">Manage user accounts and permissions</p>
                 </div>
                 <div className="bg-white/20 rounded-lg px-4 py-2 backdrop-blur-sm border border-white/20">
                   <span className="text-sm font-medium">{users.length} Total Users</span>
@@ -739,7 +744,7 @@ export default function AdminDashboard() {
                       <div className="flex gap-2">
                         <button 
                           onClick={() => handleViewStudentProfile(user)}
-                          className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg font-medium transition-all duration-200"
+                          className="text-xs bg-[#00AFF0] hover:bg-[#0099D6] text-white px-3 py-1.5 rounded-lg font-medium transition-all duration-200"
                         >
                           View Profile
                         </button>
@@ -778,6 +783,7 @@ export default function AdminDashboard() {
             )}
           </div>
         )}
+        </div>
       </div>
       
       {/* View Details Modal */}
@@ -829,7 +835,78 @@ export default function AdminDashboard() {
                 </select>
               </div>
               <input className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Category (optional)" value={createForm.category} onChange={e => setCreateForm({ ...createForm, category: e.target.value })} />
-              <input className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Image URL (optional)" value={createForm.image_url} onChange={e => setCreateForm({ ...createForm, image_url: e.target.value })} />
+              
+              {/* Image Upload Section */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Campaign Image</label>
+                <div className="space-y-3">
+                  {/* File Upload */}
+                  <div>
+                    <label className="block">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <div className="w-full bg-[#00AFF0] hover:bg-[#0099D6] text-white px-4 py-2 rounded-lg text-sm font-medium text-center cursor-pointer transition-colors duration-200 border border-[#00AFF0] hover:border-[#0099D6]">
+                        📁 Choose Image File
+                      </div>
+                    </label>
+                    <p className="mt-2 text-xs text-gray-500">
+                      <strong>Recommended:</strong> 600x600 pixels, JPG or PNG format
+                    </p>
+                  </div>
+                  
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="relative">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="h-24 w-full rounded object-cover border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleRemoveFile}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  )}
+                  
+                  {/* OR Image URL */}
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-sm">
+                      <span className="bg-white px-2 text-gray-500">OR</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <input
+                      className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm"
+                      placeholder="Enter image URL instead of uploading"
+                      value={createForm.image_url}
+                      onChange={(e) => {
+                        setCreateForm({ ...createForm, image_url: e.target.value });
+                        if (e.target.value) {
+                          setSelectedFile(null);
+                          setImagePreview(null);
+                          if (fileInputRef.current) {
+                            fileInputRef.current.value = "";
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              
               <input className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Video URL (optional)" value={createForm.video_url} onChange={e => setCreateForm({ ...createForm, video_url: e.target.value })} />
             </div>
             <div className="mt-6 flex justify-end gap-2">
@@ -966,7 +1043,6 @@ export default function AdminDashboard() {
         onConfirm={handleStudentProfileConfirm}
         student={selectedStudent}
       />
-
     </div>
   );
 }

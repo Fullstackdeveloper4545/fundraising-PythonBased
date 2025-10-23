@@ -4,8 +4,20 @@ import { AuthProvider } from "@/context/AuthContext";
 import NavBar from "@/components/NavBar";
 import Link from "next/link";
 import Footer from "@/components/Footer";
+import { usePathname } from "next/navigation";
 
 export default function ClientRoot({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isAdminPage = pathname?.startsWith('/admin');
+  
+  if (isAdminPage) {
+    return (
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    );
+  }
+  
   return (
     <AuthProvider>
       <NavBar />
