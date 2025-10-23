@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
@@ -8,6 +8,7 @@ from app.core.auth import get_current_user
 from app.models.user import User
 from app.models.campaign import Campaign, CampaignCreate, CampaignUpdate, CampaignResponse, CampaignStatus
 from app.services.campaign_service import CampaignService
+from app.services.image_service import image_service
 from app.core.exceptions import NotFoundException, ValidationException, CampaignException
 
 router = APIRouter()
@@ -136,6 +137,92 @@ async def create_campaign(
         )
     except Exception as e:
         logger.error(f"Error creating campaign: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/with-image", response_model=CampaignResponse)
+async def create_campaign_with_image(
+    title: str = Form(...),
+    description: str = Form(...),
+    goal_amount: float = Form(...),
+    duration_months: str = Form(...),
+    category: Optional[str] = Form(None),
+    story: Optional[str] = Form(None),
+    video_url: Optional[str] = Form(None),
+    image_url: Optional[str] = Form(None),
+    image_file: Optional[UploadFile] = File(None),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new campaign with image upload support"""
+    try:
+        # Handle image upload or URL
+        final_image_url = image_url
+        
+        if image_file and image_file.filename:
+            # Upload image file
+            try:
+                image_info = await image_service.upload_image(
+                    image_file, 
+                    category="campaigns", 
+                    user_id=current_user.id
+                )
+                final_image_url = image_info["url"]
+                logger.info(f"Image uploaded for campaign: {final_image_url}")
+            except Exception as e:
+                logger.error(f"Failed to upload image: {e}")
+                raise HTTPException(status_code=400, detail=f"Failed to upload image: {str(e)}")
+        
+        # Create campaign data
+        campaign_data = CampaignCreate(
+            title=title,
+            description=description,
+            goal_amount=goal_amount,
+            duration_months=duration_months,
+            category=category,
+            story=story,
+            video_url=video_url,
+            image_url=final_image_url
+        )
+        
+        supabase = get_supabase()
+        campaign_service = CampaignService(supabase)
+        
+        # Allow only students and admins to create campaigns
+        if current_user.role not in ("student", "admin"):
+            raise CampaignException("Only student and admin roles can create campaigns")
+
+        # Check if user has met referral requirements
+        if not await campaign_service.check_referral_requirements(current_user.id):
+            raise CampaignException("You must refer at least 5 friends before creating a campaign")
+        
+        # Create campaign
+        campaign = await campaign_service.create_campaign(current_user.id, campaign_data)
+        
+        return CampaignResponse(
+            id=campaign.id,
+            user_id=campaign.user_id,
+            title=campaign.title,
+            description=campaign.description,
+            goal_amount=campaign.goal_amount,
+            current_amount=campaign.current_amount,
+            status=campaign.status,
+            duration_months=campaign.duration_months,
+            start_date=campaign.start_date,
+            end_date=campaign.end_date,
+            category=campaign.category,
+            image_url=campaign.image_url,
+            video_url=campaign.video_url,
+            story=campaign.story,
+            is_featured=campaign.is_featured,
+            referral_requirement_met=campaign.referral_requirement_met,
+            created_at=campaign.created_at,
+            updated_at=campaign.updated_at,
+            progress_percentage=float(campaign.current_amount / campaign.goal_amount * 100),
+            days_remaining=await campaign_service.calculate_days_remaining(campaign),
+            donor_count=await campaign_service.get_donor_count(campaign.id)
+        )
+    except Exception as e:
+        logger.error(f"Error creating campaign with image: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 

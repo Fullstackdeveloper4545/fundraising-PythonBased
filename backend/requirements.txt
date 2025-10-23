@@ -16,3 +16,4 @@ phonenumbers
 jinja2
 aiofiles
 httpx
+Pillow

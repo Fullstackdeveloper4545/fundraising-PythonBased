@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, campaigns, payments, referrals, shoutouts, milestones, receipts, companies, admin, highlights, email_test, otp_verification, partnership
+from app.api.v1.endpoints import auth, campaigns, payments, referrals, shoutouts, milestones, receipts, companies, admin, highlights, email_test, otp_verification, partnership, static
 
 api_router = APIRouter()
 
@@ -17,3 +17,4 @@ api_router.include_router(highlights.router, prefix="/highlights", tags=["highli
 api_router.include_router(email_test.router, prefix="/email-test", tags=["email-testing"])
 api_router.include_router(otp_verification.router, prefix="/otp", tags=["otp-verification"])
 api_router.include_router(partnership.router, prefix="/partnership", tags=["partnership"])
+api_router.include_router(static.router, prefix="/static", tags=["static-files"])
