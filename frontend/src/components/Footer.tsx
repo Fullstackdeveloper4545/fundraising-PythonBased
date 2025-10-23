@@ -155,7 +155,7 @@ export default function Footer() {
                 © {new Date().getFullYear()} Fundraising Platform. All rights reserved.
               </p>
               <div className="flex items-center space-x-4 text-xs text-white/70">
-                <span>Made with ❤️ for students</span>
+                <span className="flex items-center gap-1">Made with <span className="text-[#00AFF0] text-xl"></span> for students</span>
                 <span>•</span>
                 <span>Secure & Trusted</span>
               </div>
