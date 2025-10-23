@@ -5,6 +5,22 @@ import Link from "next/link";
 import DonateButton from "@/components/DonateButton";
 import CloseCampaignButton from "@/components/CloseCampaignButton";
 
+// Helper function to construct proper image URLs
+function getImageUrl(imageUrl: string | null | undefined): string | null {
+  if (!imageUrl) return null;
+  
+  // If it's already a full URL, return as is
+  if (imageUrl.startsWith('http')) return imageUrl;
+  
+  // If it's a relative path, prepend the backend base URL
+  if (imageUrl.startsWith('/uploads/')) {
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+    return `${backendUrl}${imageUrl}`;
+  }
+  
+  return imageUrl;
+}
+
 interface Params {
   params: Promise<{ id: string }>;
 }
@@ -33,7 +49,7 @@ async function CampaignDetail({ id }: { id: string }) {
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          {campaign.image_url ? <img alt="" src={campaign.image_url} className="mb-3 w-full rounded" /> : <div className="mb-3 h-64 w-full rounded bg-gray-100" />}
+          {campaign.image_url ? <img alt="" src={getImageUrl(campaign.image_url) || ''} className="mb-3 w-full rounded" /> : <div className="mb-3 h-64 w-full rounded bg-gray-100" />}
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-3xl font-bold">{campaign.title}</h1>
             <span

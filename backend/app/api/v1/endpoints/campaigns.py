@@ -3,7 +3,10 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
 
-from app.core.database import get_supabase
+from app.core.database import get_supabase, get_supabase_admin
+from app.services.user_service import UserService
+from app.models.user import UserCreate, UserRole
+import secrets
 from app.core.auth import get_current_user
 from app.models.user import User
 from app.models.campaign import Campaign, CampaignCreate, CampaignUpdate, CampaignResponse, CampaignStatus
@@ -22,19 +25,41 @@ async def create_campaign(
 ):
     """Create a new campaign"""
     try:
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for controlled server-side insert
+        supabase = get_supabase_admin()
         campaign_service = CampaignService(supabase)
+        user_service = UserService(supabase)
         
         # Allow only students and admins to create campaigns
         if current_user.role not in ("student", "admin"):
             raise CampaignException("Only student and admin roles can create campaigns")
 
-        # Check if user has met referral requirements
-        if not await campaign_service.check_referral_requirements(current_user.id):
-            raise CampaignException("You must refer at least 5 friends before creating a campaign")
+        # Check referral requirements only for students (admins are exempt)
+        if current_user.role == "student":
+            if not await campaign_service.check_referral_requirements(current_user.id):
+                raise CampaignException("You must refer at least 5 friends before creating a campaign")
         
+        # Determine effective user_id (admin special-case uses a real DB user)
+        effective_user_id = current_user.id
+        if effective_user_id == -1:
+            # Map virtual admin to a real user row
+            admin_user = await user_service.get_user_by_email(current_user.email)
+            if not admin_user:
+                # Create admin user with a strong random password
+                random_password = secrets.token_urlsafe(24)
+                created_admin = await user_service.create_user(UserCreate(
+                    email=current_user.email,
+                    password=random_password,
+                    first_name=current_user.first_name or "Admin",
+                    last_name=current_user.last_name or "User",
+                    role=UserRole.ADMIN
+                ))
+                effective_user_id = created_admin.id  # type: ignore
+            else:
+                effective_user_id = admin_user.id  # type: ignore
+
         # Create campaign
-        campaign = await campaign_service.create_campaign(current_user.id, campaign_data)
+        campaign = await campaign_service.create_campaign(int(effective_user_id), campaign_data)
         
         # Send campaign creation notification email
         try:
@@ -184,19 +209,39 @@ async def create_campaign_with_image(
             image_url=final_image_url
         )
         
-        supabase = get_supabase()
+        # Use admin client to bypass RLS for controlled server-side insert
+        supabase = get_supabase_admin()
         campaign_service = CampaignService(supabase)
+        user_service = UserService(supabase)
         
         # Allow only students and admins to create campaigns
         if current_user.role not in ("student", "admin"):
             raise CampaignException("Only student and admin roles can create campaigns")
 
-        # Check if user has met referral requirements
-        if not await campaign_service.check_referral_requirements(current_user.id):
-            raise CampaignException("You must refer at least 5 friends before creating a campaign")
-        
+        # Check referral requirements only for students (admins are exempt)
+        if current_user.role == "student":
+            if not await campaign_service.check_referral_requirements(current_user.id):
+                raise CampaignException("You must refer at least 5 friends before creating a campaign")
+
+        # Determine effective user_id (admin special-case uses a real DB user)
+        effective_user_id = current_user.id
+        if effective_user_id == -1:
+            admin_user = await user_service.get_user_by_email(current_user.email)
+            if not admin_user:
+                random_password = secrets.token_urlsafe(24)
+                created_admin = await user_service.create_user(UserCreate(
+                    email=current_user.email,
+                    password=random_password,
+                    first_name=current_user.first_name or "Admin",
+                    last_name=current_user.last_name or "User",
+                    role=UserRole.ADMIN
+                ))
+                effective_user_id = created_admin.id  # type: ignore
+            else:
+                effective_user_id = admin_user.id  # type: ignore
+
         # Create campaign
-        campaign = await campaign_service.create_campaign(current_user.id, campaign_data)
+        campaign = await campaign_service.create_campaign(int(effective_user_id), campaign_data)
         
         return CampaignResponse(
             id=campaign.id,

@@ -23,6 +23,17 @@ async def create_referral(
         supabase = get_supabase()
         referral_service = ReferralService(supabase)
         
+        # Only students can create referrals
+        if current_user.role != "student":
+            raise HTTPException(status_code=403, detail="Only student users can create referrals")
+
+        # Ensure the campaign belongs to the current student
+        campaign_result = supabase.table("campaigns").select("user_id").eq("id", referral_data.campaign_id).single().execute()
+        if not campaign_result.data:
+            raise NotFoundException("Campaign not found")
+        if campaign_result.data["user_id"] != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to create referrals for this campaign")
+
         # Create referral
         referral = await referral_service.create_referral(referral_data)
         

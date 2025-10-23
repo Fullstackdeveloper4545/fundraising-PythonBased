@@ -101,7 +101,9 @@ export default function CreateCampaignPage() {
             {loading ? "Creating..." : `Create campaign ($${monthlyFee}/mo, total $${totalFee})`}
           </button>
         </form>
-        <p className="mt-3 text-xs text-gray-600">Note: Referral requirement of 5 accepted invites must be met to start a campaign.</p>
+        {user?.role === "student" && (
+          <p className="mt-3 text-xs text-gray-600">Note: Referral requirement of 5 accepted invites must be met to start a campaign.</p>
+        )}
       </div>
     </div>
   );
