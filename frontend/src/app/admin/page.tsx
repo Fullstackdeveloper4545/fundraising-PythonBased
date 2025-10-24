@@ -86,16 +86,20 @@ export default function AdminDashboard() {
     
     const loadData = async () => {
       try {
+        console.log("Loading admin data...");
         const [statsData, campaignsData, usersData] = await Promise.all([
           apiFetch<PlatformStats>(`/admin/stats`, { token }),
           apiFetch<Campaign[]>(`/admin/campaigns`, { token }),
           apiFetch<User[]>(`/admin/users`, { token }),
         ]);
         
+        console.log("Admin data loaded:", { statsData, campaignsData, usersData });
+        
         setStats(statsData);
         setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
         setUsers(Array.isArray(usersData) ? usersData : []);
       } catch (e) {
+        console.error("Error loading admin data:", e);
         setError(e instanceof Error ? e.message : "Failed to load admin data");
       } finally {
         setLoading(false);
@@ -134,7 +138,7 @@ export default function AdminDashboard() {
 
   const handleCreateCampaign = async () => {
     try {
-      const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+      console.log("Creating campaign:", createForm);
       
       // Create FormData for file upload
       const formData = new FormData();
@@ -152,21 +156,21 @@ export default function AdminDashboard() {
         formData.append("image_url", createForm.image_url);
       }
       
-      const response = await fetch(`${API_BASE_URL}/campaigns/with-image`, {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-        },
-        body: formData,
-      });
+      // Use the improved API method
+      const response = await CampaignAPI.createWithImage(formData, token as string);
+      console.log("Campaign created successfully:", response);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || `Request failed: ${response.status}`);
-      }
+      // Refresh all data
+      const [statsData, campaignsData, usersData] = await Promise.all([
+        apiFetch<PlatformStats>(`/admin/stats`, { token }),
+        apiFetch<Campaign[]>(`/admin/campaigns`, { token }),
+        apiFetch<User[]>(`/admin/users`, { token }),
+      ]);
       
-      const campaignsData = await apiFetch<Campaign[]>(`/admin/campaigns`, { token });
+      setStats(statsData);
       setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      
       setShowCreate(false);
       setCreateForm({ title: "", description: "", goal_amount: 1000, duration_months: "3", category: "", image_url: "", video_url: "", story: "" });
       setSelectedFile(null);
@@ -174,8 +178,27 @@ export default function AdminDashboard() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+      
+      // Show success message
+      Swal.fire({
+        title: 'Success!',
+        text: 'Campaign created successfully in draft status',
+        icon: 'success',
+        timer: 2000,
+        showConfirmButton: false,
+      });
     } catch (e) {
+      console.error("Error creating campaign:", e);
       setError(e instanceof Error ? e.message : "Failed to create campaign");
+      
+      // Show error message
+      Swal.fire({
+        title: 'Error!',
+        text: e instanceof Error ? e.message : "Failed to create campaign",
+        icon: 'error',
+        timer: 3000,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -339,6 +362,17 @@ export default function AdminDashboard() {
                 <p className="text-sm text-gray-600">Welcome back, {user?.first_name}</p>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={() => {
+                  setLoading(true);
+                  setError(null);
+                  loadData();
+                }}
+                className="text-sm text-gray-600 hover:text-[#00AFF0] transition-colors"
+                title="Refresh data"
+              >
+                🔄 Refresh
+              </button>
               <a
                 href="/"
                   className="text-sm text-gray-600 hover:text-[#00AFF0] transition-colors"
@@ -449,20 +483,20 @@ export default function AdminDashboard() {
                 <div className="p-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-600">Active Campaigns</p>
-                      <p className="text-3xl font-bold text-gray-900 mt-2">{stats?.active_campaigns || 0}</p>
+                      <p className="text-sm font-medium text-gray-600">Draft Campaigns</p>
+                      <p className="text-3xl font-bold text-gray-900 mt-2">{campaigns.filter(c => c.status === 'draft').length}</p>
                     </div>
-                    <div className="w-12 h-12 bg-gradient-to-br from-[#00AFF0] to-[#0099D6] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
+                    <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-200">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center text-sm text-green-600">
+                  <div className="mt-4 flex items-center text-sm text-yellow-600">
                     <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>+5% from last month</span>
+                    <span>Pending approval</span>
                   </div>
                 </div>
               </div>
@@ -539,9 +573,126 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Campaigns Grid */}
+            {/* Draft Campaigns Section */}
+            {campaigns.filter(c => c.status === 'draft').length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold text-gray-900 flex items-center">
+                    <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium mr-3">
+                      PENDING APPROVAL
+                    </span>
+                    Draft Campaigns ({campaigns.filter(c => c.status === 'draft').length})
+                  </h3>
+                </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {campaigns.map((campaign) => (
+                  {campaigns.filter(c => c.status === 'draft').map((campaign) => (
+                    <div key={campaign.id} className="group bg-yellow-50 border-2 border-yellow-200 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+                      {/* Campaign Header */}
+                      <div className="p-6 pb-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <h4 className="text-lg font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                            {campaign.title}
+                          </h4>
+                          <span className="ml-3 px-3 py-1 text-xs font-semibold rounded-full whitespace-nowrap bg-yellow-200 text-yellow-800">
+                            {campaign.status}
+                          </span>
+                        </div>
+                        
+                        {/* Campaign Stats */}
+                        <div className="space-y-3">
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Goal</span>
+                            <span className="font-medium text-gray-900">${campaign.goal_amount.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Duration</span>
+                            <span className="font-medium text-gray-900">{campaign.duration_months} months</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-gray-600">Created</span>
+                            <span className="font-medium text-gray-900">{new Date(campaign.created_at).toLocaleDateString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="px-6 py-4 bg-yellow-100 border-t border-yellow-200">
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await apiFetch(`/admin/campaigns/${campaign.id}/status/active`, { method: 'POST', token });
+                                console.log("Campaign approved:", response);
+                                
+                                // Reload campaigns
+                                const campaignsData = await apiFetch<Campaign[]>(`/admin/campaigns`, { token });
+                                setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+                                
+                                Swal.fire({
+                                  title: 'Success!',
+                                  text: `Campaign "${campaign.title}" has been approved and is now active`,
+                                  icon: 'success',
+                                  timer: 2000,
+                                  showConfirmButton: false,
+                                });
+                              } catch (err) {
+                                console.error("Error approving campaign:", err);
+                                Swal.fire({
+                                  title: 'Error!',
+                                  text: err instanceof Error ? err.message : 'Failed to approve campaign',
+                                  icon: 'error',
+                                  timer: 3000,
+                                  showConfirmButton: false,
+                                });
+                              }
+                            }}
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            ✓ Approve Campaign
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await apiFetch(`/admin/campaigns/${campaign.id}/status/cancelled`, { method: 'POST', token });
+                                console.log("Campaign rejected:", response);
+                                
+                                // Reload campaigns
+                                const campaignsData = await apiFetch<Campaign[]>(`/admin/campaigns`, { token });
+                                setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+                                
+                                Swal.fire({
+                                  title: 'Campaign Rejected',
+                                  text: `Campaign "${campaign.title}" has been rejected`,
+                                  icon: 'info',
+                                  timer: 2000,
+                                  showConfirmButton: false,
+                                });
+                              } catch (err) {
+                                console.error("Error rejecting campaign:", err);
+                                Swal.fire({
+                                  title: 'Error!',
+                                  text: err instanceof Error ? err.message : 'Failed to reject campaign',
+                                  icon: 'error',
+                                  timer: 3000,
+                                  showConfirmButton: false,
+                                });
+                              }
+                            }}
+                            className="flex-1 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            ✗ Reject Campaign
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* All Campaigns Grid */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {campaigns.filter(c => c.status !== 'draft').map((campaign) => (
                 <div key={campaign.id} className="group bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
                   {/* Campaign Header */}
                   <div className="p-6 pb-4">
@@ -614,12 +765,36 @@ export default function AdminDashboard() {
                       <select
                         onChange={async (e) => {
                           const next = e.target.value as any;
+                          console.log(`Updating campaign ${campaign.id} status to ${next}`);
                           try {
-                            await apiFetch(`/admin/campaigns/${campaign.id}/status/${next}`, { method: 'POST', token });
+                            const response = await apiFetch(`/admin/campaigns/${campaign.id}/status/${next}`, { method: 'POST', token });
+                            console.log("Status update response:", response);
+                            
+                            // Reload campaigns to show updated status
                             const campaignsData = await apiFetch<Campaign[]>(`/admin/campaigns`, { token });
+                            console.log("Reloaded campaigns:", campaignsData);
                             setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+                            
+                            // Show success message
+                            Swal.fire({
+                              title: 'Success!',
+                              text: `Campaign status updated to ${next}`,
+                              icon: 'success',
+                              timer: 2000,
+                              showConfirmButton: false,
+                            });
                           } catch (err) {
+                            console.error("Error updating campaign status:", err);
                             setError(err instanceof Error ? err.message : 'Failed to update status');
+                            
+                            // Show error message
+                            Swal.fire({
+                              title: 'Error!',
+                              text: err instanceof Error ? err.message : 'Failed to update status',
+                              icon: 'error',
+                              timer: 3000,
+                              showConfirmButton: false,
+                            });
                           }
                         }}
                         value={campaign.status}

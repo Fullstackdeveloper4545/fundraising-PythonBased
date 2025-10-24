@@ -46,29 +46,20 @@ export default function NavBar() {
   };
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-[#00AFF0]/90 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between">
+        <Link href="/" className="flex items-center gap-2 font-semibold pl-4 sm:pl-6">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#00AFF0] text-sm font-bold text-white">HS</span>
           <span className="text-lg text-white">HighSchool Fund</span>
         </Link>
-        <nav className="flex items-center gap-2 sm:gap-4 text-sm">
+        <nav className="flex items-center gap-2 sm:gap-4 text-sm pr-4 sm:pr-6">
           <Link href="/campaigns" className="hidden sm:inline hover:underline text-white">Campaigns</Link>
           {user && ["student", "admin"].includes(user.role) && (
             <Link href="/create-campaign" className="hidden sm:inline hover:underline text-white">Create</Link>
           )}
           <Link href="/spotlight" className="hidden sm:inline hover:underline text-white">Spotlight</Link>
           <Link href="/partnership" className="hidden sm:inline hover:underline text-white">Partnership</Link>
-          <Link href="/admin/login" className="hover:underline text-white">
-            <span className="hidden sm:inline">Admin</span>
-            <span className="sm:hidden">🔐</span>
-          </Link>
           {user ? (
             <div className="flex items-center gap-2 sm:gap-3">
-              {user.role === "admin" && (
-                <Link href="/admin" className="hidden sm:inline text-white hover:text-white/80 font-medium">
-                  Dashboard
-                </Link>
-              )}
               <span className="hidden sm:inline text-white text-sm">{user.email}</span>
               <button 
                 onClick={handleLogoutClick} 

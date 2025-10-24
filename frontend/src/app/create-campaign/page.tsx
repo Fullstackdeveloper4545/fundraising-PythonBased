@@ -112,10 +112,26 @@ export default function CreateCampaignPage() {
     
     // Store form data in sessionStorage for after payment
     sessionStorage.setItem('campaignFormData', JSON.stringify(form));
-    sessionStorage.setItem('selectedFile', selectedFile ? 'true' : 'false');
     
-    // Redirect to payment page
-    router.push(`/payment?amount=${totalFee}&type=campaign&duration=${form.duration_months}`);
+    // Store file information
+    if (selectedFile) {
+      // Convert file to base64 for storage
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        sessionStorage.setItem('campaignFileData', base64);
+        sessionStorage.setItem('campaignFileName', selectedFile.name);
+        sessionStorage.setItem('selectedFile', 'true');
+        
+        // Redirect to payment page
+        router.push(`/payment?amount=${totalFee}&type=campaign&duration=${form.duration_months}`);
+      };
+      reader.readAsDataURL(selectedFile);
+    } else {
+      sessionStorage.setItem('selectedFile', 'false');
+      // Redirect to payment page
+      router.push(`/payment?amount=${totalFee}&type=campaign&duration=${form.duration_months}`);
+    }
   };
 
   if (!user) {

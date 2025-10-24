@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { CampaignAPI } from "@/lib/api";
 import Swal from "sweetalert2";
 
 export default function PaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [selectedMethod, setSelectedMethod] = useState<string>("");
   
@@ -20,6 +21,62 @@ export default function PaymentPage() {
       router.push('/signin');
     }
   }, [user, router]);
+
+  const createCampaignAfterPayment = async () => {
+    try {
+      // Get stored form data
+      const storedFormData = sessionStorage.getItem('campaignFormData');
+      const hasFile = sessionStorage.getItem('selectedFile') === 'true';
+      
+      if (!storedFormData) {
+        throw new Error('Campaign form data not found');
+      }
+
+      const formData = JSON.parse(storedFormData);
+      console.log('Creating campaign with stored data:', formData);
+
+      // Create FormData for API call
+      const apiFormData = new FormData();
+      apiFormData.append("title", formData.title);
+      apiFormData.append("description", formData.description);
+      apiFormData.append("goal_amount", formData.goal_amount.toString());
+      apiFormData.append("duration_months", formData.duration_months);
+      apiFormData.append("category", formData.category || "");
+      apiFormData.append("story", formData.story || "");
+      apiFormData.append("video_url", formData.video_url || "");
+      
+      // Handle file upload
+      if (hasFile) {
+        const fileData = sessionStorage.getItem('campaignFileData');
+        const fileName = sessionStorage.getItem('campaignFileName');
+        
+        if (fileData && fileName) {
+          // Convert base64 back to file
+          const response = await fetch(fileData);
+          const blob = await response.blob();
+          const file = new File([blob], fileName, { type: blob.type });
+          apiFormData.append("image_file", file);
+        }
+      } else if (formData.image_url) {
+        apiFormData.append("image_url", formData.image_url);
+      }
+
+      // Create campaign using API
+      const response = await CampaignAPI.createWithImage(apiFormData, token as string);
+      console.log('Campaign created successfully:', response);
+
+      // Clear stored data
+      sessionStorage.removeItem('campaignFormData');
+      sessionStorage.removeItem('selectedFile');
+      sessionStorage.removeItem('campaignFileData');
+      sessionStorage.removeItem('campaignFileName');
+
+      return response;
+    } catch (error) {
+      console.error('Error creating campaign:', error);
+      throw error;
+    }
+  };
 
   const handlePayment = async (method: 'paypal' | 'square') => {
     if (!selectedMethod) {
@@ -40,10 +97,13 @@ export default function PaymentPage() {
       // Simulate payment processing
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Create campaign after successful payment
+      const campaign = await createCampaignAfterPayment();
+      
       // Show success message
       Swal.fire({
         title: 'Payment Successful!',
-        text: `Your ${type} has been created successfully. You will now be redirected to invite 5 friends.`,
+        text: `Your campaign "${campaign.title}" has been created and is now in draft status. It will be reviewed by our admin team before going live.`,
         icon: 'success',
         confirmButtonText: 'Continue to Referrals',
         customClass: {
@@ -55,9 +115,10 @@ export default function PaymentPage() {
       });
       
     } catch (error) {
+      console.error('Payment/Campaign creation failed:', error);
       Swal.fire({
-        title: 'Payment Failed',
-        text: 'There was an error processing your payment. Please try again.',
+        title: 'Error',
+        text: error instanceof Error ? error.message : 'There was an error processing your payment or creating your campaign. Please try again.',
         icon: 'error',
         customClass: {
           popup: 'swal2-popup-custom'

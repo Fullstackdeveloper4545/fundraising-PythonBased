@@ -68,7 +68,7 @@ export const CampaignAPI = {
     if (params?.featured !== undefined) query.set("featured", String(params.featured));
     if (params?.limit) query.set("limit", String(params.limit));
     const qs = query.toString();
-    return apiFetch(`/campaigns/${qs ? `?${qs}` : ""}`);
+    return apiFetch(`/campaigns${qs ? `?${qs}` : ""}`);
   },
   get: (id: string | number) => apiFetch(`/campaigns/${id}`),
   create: (data: {
@@ -81,6 +81,26 @@ export const CampaignAPI = {
     video_url?: string;
     story?: string;
   }, token: string) => apiFetch(`/campaigns/`, { method: "POST", body: data, token }),
+  createWithImage: (formData: FormData, token: string) => {
+    const url = `${API_BASE_URL}/campaigns/with-image`;
+    return fetch(url, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+      body: formData,
+    }).then(async (res) => {
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(text || `Request failed: ${res.status}`);
+      }
+      return res.json();
+    });
+  },
+  update: (id: string | number, data: any, token: string) => 
+    apiFetch(`/campaigns/${id}`, { method: "PUT", body: data, token }),
+  delete: (id: string | number, token: string) => 
+    apiFetch(`/campaigns/${id}`, { method: "DELETE", token }),
 };
 
 export const PaymentAPI = {

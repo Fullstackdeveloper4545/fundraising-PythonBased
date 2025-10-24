@@ -115,7 +115,7 @@ async def set_campaign_status(
 async def get_all_users(admin_user: User = Depends(get_admin_user)):
     """Get all users for admin"""
     try:
-        supabase = get_supabase()
+        supabase = get_supabase_admin()
         admin_service = AdminService(supabase)
         
         users = await admin_service.get_all_users()

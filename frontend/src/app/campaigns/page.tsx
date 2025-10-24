@@ -19,7 +19,8 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
 }
 
 export default async function CampaignsPage() {
-  const campaigns = await CampaignAPI.list({ limit: 30 });
+  // Only fetch active campaigns for public display
+  const campaigns = await CampaignAPI.list({ status: "active", limit: 30 });
   const items = Array.isArray(campaigns) ? campaigns : [];
   return (
     <div>
