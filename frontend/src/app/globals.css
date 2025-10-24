@@ -206,7 +206,7 @@ a {
 }
 a:hover { 
   color: var(--brand-700); 
-  text-decoration: underline;
+  text-decoration: none;
 }
 
 /* Ensure link-styled buttons render white text across the whole clickable area */

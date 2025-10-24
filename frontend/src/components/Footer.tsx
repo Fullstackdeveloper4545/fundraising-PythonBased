@@ -155,7 +155,7 @@ export default function Footer() {
                 © {new Date().getFullYear()} Fundraising Platform. All rights reserved.
               </p>
               <div className="flex items-center space-x-4 text-xs text-white/70">
-                <span className="flex items-center gap-1">Made with <span className="text-[#00AFF0] text-xl"></span> for students</span>
+                <span className="flex items-center gap-1">Made with <span className="text-[#00AFF0] text-xl">💰</span> for students</span>
                 <span>•</span>
                 <span>Secure & Trusted</span>
               </div>
@@ -164,18 +164,47 @@ export default function Footer() {
             {/* Payment Methods */}
             <div className="flex items-center space-x-4">
               <span className="text-xs text-white/70">Secure payments:</span>
-              <div className="flex items-center space-x-2">
-                <div className="payment-badge h-6 w-10 bg-[#00AFF0] rounded text-white text-xs flex items-center justify-center font-bold">
-                  VISA
+              <div className="flex items-center space-x-3">
+                {/* Visa */}
+                <div className="payment-badge h-8 w-12 bg-white rounded flex items-center justify-center p-1">
+                  <svg viewBox="0 0 24 16" className="h-6 w-8">
+                    <rect width="24" height="16" rx="2" fill="white"/>
+                    <rect x="0" y="0" width="24" height="2" fill="#1A1F71"/>
+                    <rect x="0" y="14" width="24" height="2" fill="#F7A600"/>
+                    <text x="12" y="10" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#1A1F71">VISA</text>
+                  </svg>
                 </div>
-                <div className="payment-badge h-6 w-10 bg-red-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                  MC
+                
+                {/* MasterCard */}
+                <div className="payment-badge h-8 w-12 bg-white rounded flex items-center justify-center p-1">
+                  <svg viewBox="0 0 24 16" className="h-6 w-8">
+                    <rect width="24" height="16" rx="2" fill="white"/>
+                    <circle cx="8" cy="8" r="6" fill="#EB001B"/>
+                    <circle cx="16" cy="8" r="6" fill="#F79E1B"/>
+                    <path d="M12 2C8.5 2 5.5 4.5 5.5 8s3 6 6.5 6 6.5-3.5 6.5-6-3-6-6.5-6z" fill="white"/>
+                    <path d="M12 2C15.5 2 18.5 4.5 18.5 8s-3 6-6.5 6-6.5-3.5-6.5-6 3-6 6.5-6z" fill="white"/>
+                  </svg>
                 </div>
-                <div className="payment-badge h-6 w-10 bg-yellow-500 rounded text-white text-xs flex items-center justify-center font-bold">
-                  PP
+                
+                {/* PayPal */}
+                <div className="payment-badge h-8 w-12 bg-white rounded flex items-center justify-center p-1">
+                  <svg viewBox="0 0 24 16" className="h-6 w-8">
+                    <rect width="24" height="16" rx="2" fill="white"/>
+                    <g transform="translate(2, 2)">
+                      <path d="M8.5 1.5c-1.5 0-2.5 1-2.5 2.5s1 2.5 2.5 2.5h1.5l1-4h-2.5z" fill="#0070BA"/>
+                      <path d="M6 1.5c-1.5 0-2.5 1-2.5 2.5s1 2.5 2.5 2.5h1.5l1-4h-2.5z" fill="#009CDE"/>
+                    </g>
+                  </svg>
                 </div>
-                <div className="payment-badge h-6 w-10 bg-green-600 rounded text-white text-xs flex items-center justify-center font-bold">
-                  SQ
+                
+                {/* Square */}
+                <div className="payment-badge h-8 w-12 bg-white rounded flex items-center justify-center p-1">
+                  <svg viewBox="0 0 24 16" className="h-6 w-8">
+                    <rect width="24" height="16" rx="2" fill="white"/>
+                    <rect x="4" y="4" width="16" height="8" rx="1" fill="#3E3E3E"/>
+                    <rect x="6" y="6" width="12" height="4" rx="0.5" fill="white"/>
+                    <rect x="8" y="8" width="8" height="0.5" fill="#3E3E3E"/>
+                  </svg>
                 </div>
               </div>
             </div>

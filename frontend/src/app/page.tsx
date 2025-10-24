@@ -29,7 +29,7 @@ export default function HomePage() {
                 href="/create-campaign"
                 className="btn-primary inline-block px-8 py-4 text-lg"
               >
-                Start a Free Fundraiser
+                Start Campaign
               </Link>
             </div>
             <div className="relative">
@@ -89,7 +89,7 @@ export default function HomePage() {
             </div>
             <div className="text-center">
               <div className="w-12 h-12 bg-[#00AFF0] bg-opacity-10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-[#00AFF0] text-xl">💝</span>
+                <span className="text-[#00AFF0] text-xl">💰</span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">$2M+ Raised</h3>
               <p className="text-sm text-gray-600">Total impact</p>
@@ -129,9 +129,12 @@ export default function HomePage() {
               <p className="text-gray-600 mb-6">
                 Get financial support for your educational goals by raising funds with the help of donors, family, and friends online.
               </p>
-              <button className="border-2 border-[#00AFF0] text-[#00AFF0] px-6 py-3 rounded-lg font-semibold hover:bg-[#00AFF0] hover:text-white transition-colors">
-                GET A CALLBACK
-              </button>
+              <Link 
+                href="/partnership"
+                className="border-2 border-[#00AFF0] text-[#00AFF0] px-6 py-3 rounded-lg font-semibold hover:bg-[#00AFF0] hover:text-white transition-colors inline-block text-center hover:!text-white no-underline hover:no-underline"
+              >
+                Partnership
+              </Link>
             </div>
             <div className="relative">
               <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-auto">
@@ -297,11 +300,14 @@ export default function HomePage() {
                 href="/create-campaign"
                 className="btn-primary inline-block px-8 py-4 text-lg"
               >
-                START A FREE FUNDRAISER
+                START CAMPAIGN
               </Link>
-              <button className="border-2 border-[#00AFF0] text-[#00AFF0] px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#00AFF0] hover:text-white transition-colors">
-                GET A CALLBACK
-              </button>
+              <Link 
+                href="/partnership"
+                className="border-2 border-[#00AFF0] text-[#00AFF0] px-8 py-4 rounded-lg text-lg font-semibold hover:bg-[#00AFF0] hover:text-white transition-colors inline-block text-center hover:!text-white no-underline hover:no-underline"
+              >
+                Partnership
+              </Link>
             </div>
           </div>
         </div>
@@ -343,14 +349,13 @@ export default function HomePage() {
           </div>
           
           <div className="text-center">
-            <button className="text-[#00AFF0] font-semibold mb-8">Click to view all features</button>
             <div>
               <Link 
                 href="/create-campaign"
                 className="btn-primary inline-block px-8 py-4 text-lg"
               >
-                START A FREE FUNDRAISER
-            </Link>
+                START CAMPAIGN
+              </Link>
             </div>
           </div>
         </div>
