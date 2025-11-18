@@ -348,7 +348,7 @@ export default function AdminDashboard() {
     <div className="h-screen w-screen bg-gray-50 flex">
       {/* Sidebar */}
       <div className="w-64 bg-[#00AFF0] h-screen flex flex-col">
-        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user} />
+        <AdminSidebar activeTab={activeTab} setActiveTab={setActiveTab} user={user ?? undefined} />
       </div>
       
       {/* Main Content */}
