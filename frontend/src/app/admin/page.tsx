@@ -1,6 +1,7 @@
 "use client";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { apiFetch, CampaignAPI } from "@/lib/api";
 import type { Campaign, User } from "@/types/api";
 import { useAuth } from "@/context/AuthContext";
@@ -13,6 +14,21 @@ interface PlatformStats {
   total_campaigns: number;
   total_donations: number;
   active_campaigns: number;
+}
+
+const CAMPAIGN_STATUSES = ['draft','active','paused','completed','cancelled','expired'] as const;
+type CampaignStatus = typeof CAMPAIGN_STATUSES[number];
+type DurationOption = "1" | "3" | "6" | "12";
+
+interface CreateFormState {
+  title: string;
+  description: string;
+  goal_amount: number;
+  duration_months: DurationOption;
+  category: string;
+  image_url: string;
+  video_url: string;
+  story: string;
 }
 
 export default function AdminDashboard() {
@@ -40,11 +56,11 @@ export default function AdminDashboard() {
     emergency_contact: "",
     emergency_phone: "",
   });
-  const [createForm, setCreateForm] = useState({
+  const [createForm, setCreateForm] = useState<CreateFormState>({
     title: "",
     description: "",
     goal_amount: 1000,
-    duration_months: "3" as "1" | "3" | "6" | "12",
+    duration_months: "3",
     category: "",
     image_url: "",
     video_url: "",
@@ -78,36 +94,41 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadData = useCallback(async () => {
+    if (!token) {
+      return;
+    }
+    try {
+      setLoading(true);
+      setError(null);
+      console.log("Loading admin data...");
+      const [statsData, campaignsData, usersData] = await Promise.all([
+        apiFetch<PlatformStats>(`/admin/stats`, { token }),
+        apiFetch<Campaign[]>(`/admin/campaigns`, { token }),
+        apiFetch<User[]>(`/admin/users`, { token }),
+      ]);
+      
+      console.log("Admin data loaded:", { statsData, campaignsData, usersData });
+      
+      setStats(statsData);
+      setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+    } catch (e) {
+      console.error("Error loading admin data:", e);
+      setError(e instanceof Error ? e.message : "Failed to load admin data");
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     if (!token || !user || user.role !== "admin") {
       router.push("/admin/login");
       return;
     }
     
-    const loadData = async () => {
-      try {
-        console.log("Loading admin data...");
-        const [statsData, campaignsData, usersData] = await Promise.all([
-          apiFetch<PlatformStats>(`/admin/stats`, { token }),
-          apiFetch<Campaign[]>(`/admin/campaigns`, { token }),
-          apiFetch<User[]>(`/admin/users`, { token }),
-        ]);
-        
-        console.log("Admin data loaded:", { statsData, campaignsData, usersData });
-        
-        setStats(statsData);
-        setCampaigns(Array.isArray(campaignsData) ? campaignsData : []);
-        setUsers(Array.isArray(usersData) ? usersData : []);
-      } catch (e) {
-        console.error("Error loading admin data:", e);
-        setError(e instanceof Error ? e.message : "Failed to load admin data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     loadData();
-  }, [token, user, router]);
+  }, [token, user, router, loadData]);
 
   const handleFeatureCampaign = async (campaignId: number) => {
     try {
@@ -373,12 +394,12 @@ export default function AdminDashboard() {
               >
                 🔄 Refresh
               </button>
-              <a
+              <Link
                 href="/"
                   className="text-sm text-gray-600 hover:text-[#00AFF0] transition-colors"
               >
                 View Site
-              </a>
+              </Link>
               <button
                 onClick={handleLogoutClick}
                   className="text-sm text-gray-600 hover:text-[#00AFF0] transition-colors"
@@ -399,7 +420,7 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-2xl font-bold mb-1">Welcome back, {user?.first_name}!</h2>
-                  <p className="text-white/90 text-sm">Here's what's happening with your platform today</p>
+                  <p className="text-white/90 text-sm">Here&apos;s what&apos;s happening with your platform today</p>
                 </div>
                 <div className="hidden md:block">
                   <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
@@ -863,7 +884,7 @@ export default function AdminDashboard() {
                       </div>
                       <select
                         onChange={async (e) => {
-                          const next = e.target.value as any;
+                          const next = e.target.value as CampaignStatus;
                           console.log(`Updating campaign ${campaign.id} status to ${next}`);
                           try {
                             const response = await apiFetch(`/admin/campaigns/${campaign.id}/status/${next}`, { method: 'POST', token });
@@ -900,8 +921,8 @@ export default function AdminDashboard() {
                         className="text-xs rounded-lg border border-gray-300 px-2 py-1 bg-white text-gray-700 hover:border-[#00AFF0] focus:outline-none focus:ring-2 focus:ring-[#00AFF0]/50 transition"
                         title="Set campaign status"
                       >
-                        {['draft','active','paused','completed','cancelled','expired'].map(s => (
-                          <option key={s} value={s}>{s}</option>
+                        {CAMPAIGN_STATUSES.map((statusOption) => (
+                          <option key={statusOption} value={statusOption}>{statusOption}</option>
                         ))}
                       </select>
                     </div>
@@ -1101,7 +1122,7 @@ export default function AdminDashboard() {
               <textarea className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Story (optional)" rows={3} value={createForm.story} onChange={e => setCreateForm({ ...createForm, story: e.target.value })} />
               <div className="grid grid-cols-2 gap-3">
                 <input type="number" className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" placeholder="Goal Amount" value={createForm.goal_amount} onChange={e => setCreateForm({ ...createForm, goal_amount: Number(e.target.value) })} />
-                <select className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" value={createForm.duration_months} onChange={e => setCreateForm({ ...createForm, duration_months: e.target.value as any })}>
+                <select className="rounded border border-gray-300 bg-white px-3 py-2 text-sm" value={createForm.duration_months} onChange={e => setCreateForm({ ...createForm, duration_months: e.target.value as DurationOption })}>
                   <option value="1">1 month</option>
                   <option value="3">3 months</option>
                   <option value="6">6 months</option>
