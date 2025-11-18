@@ -6,7 +6,10 @@ First, create `.env.local` and set:
 
 ```
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000/api/v1
+NEXT_DEV_ALLOWED_ORIGINS=http://localhost:3000
 ```
+
+When testing from another device on your network, change both URLs to the LAN IP you expose (for example `http://192.168.1.3:8000/api/v1` and `http://192.168.1.3:3000`) so the browser and Next.js dev server treat the origin as trusted.
 
 Then, run the development server:
 

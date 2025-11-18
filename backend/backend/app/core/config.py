@@ -39,14 +39,15 @@ class Settings(BaseSettings):
     EMAIL_FROM: Optional[str] = None  # Add this field to handle the extra input
     
     # URLs
-    FRONTEND_URL: str = "http://localhost:3000"
-    BACKEND_URL: str = "http://localhost:8000"
+    FRONTEND_URL: str = "http://0.0.0.0:3000"
+    BACKEND_URL: str = "http://0.0.0.0:8000"
     
     # CORS
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://your-domain.com"
+        "*"
     ]
     
     # Campaign Configuration

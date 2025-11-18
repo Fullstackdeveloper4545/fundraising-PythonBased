@@ -11,7 +11,7 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
   
   // If it's a relative path, prepend the backend base URL
   if (imageUrl.startsWith('/uploads/')) {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://0.0.0.0:8000';
     return `${backendUrl}${imageUrl}`;
   }
   
@@ -19,9 +19,13 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
 }
 
 export default async function SpotlightPage() {
-  // Fetch spotlight campaigns (top performers)
-  const campaigns = await CampaignAPI.spotlight(6);
-  const items = Array.isArray(campaigns) ? campaigns : [];
+  let items: Campaign[] = [];
+  try {
+    const campaigns = await CampaignAPI.spotlight(6);
+    items = Array.isArray(campaigns) ? campaigns : [];
+  } catch (error) {
+    console.error("SpotlightPage: failed to load spotlight campaigns", error);
+  }
 
   return (
     <div className="min-h-screen bg-white">

@@ -13,7 +13,7 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
   
   // If it's a relative path, prepend the backend base URL
   if (imageUrl.startsWith('/uploads/')) {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://0.0.0.0:8000';
     return `${backendUrl}${imageUrl}`;
   }
   
@@ -21,9 +21,13 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
 }
 
 export default async function HomePage() {
-  // Fetch featured campaigns
-  const featuredCampaigns = await CampaignAPI.featured(3);
-  const featuredItems = Array.isArray(featuredCampaigns) ? featuredCampaigns : [];
+  let featuredItems: Campaign[] = [];
+  try {
+    const featuredCampaigns = await CampaignAPI.featured(3);
+    featuredItems = Array.isArray(featuredCampaigns) ? featuredCampaigns : [];
+  } catch (error) {
+    console.error("HomePage: failed to load featured campaigns", error);
+  }
 
   return (
     <div className="min-h-screen bg-white">

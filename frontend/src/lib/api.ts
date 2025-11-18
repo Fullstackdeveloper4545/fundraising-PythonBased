@@ -1,6 +1,68 @@
-export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000/api/v1";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://0.0.0.0:8000/api/v1";
 
 export type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+async function getErrorMessage(res: Response): Promise<string> {
+  const jsonData = await res.clone().json().catch(() => undefined);
+  const jsonMessage = extractErrorText(jsonData);
+  if (jsonMessage) {
+    return jsonMessage;
+  }
+  if (jsonData && typeof jsonData === "object") {
+    return JSON.stringify(jsonData);
+  }
+  if (typeof jsonData === "string") {
+    return jsonData;
+  }
+
+  const raw = await res.text().catch(() => "");
+  if (raw) {
+    return raw;
+  }
+  return formatStatusMessage(res);
+}
+
+function extractErrorText(value: unknown): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => extractErrorText(item))
+      .filter((item): item is string => Boolean(item));
+    if (parts.length) {
+      return parts.join(", ");
+    }
+    return undefined;
+  }
+  if (typeof value === "object" && value !== null) {
+    const record = value as Record<string, unknown>;
+    const prioritizedKeys = ["detail", "message", "msg", "error"];
+    for (const key of prioritizedKeys) {
+      if (key in record) {
+        const text = extractErrorText(record[key]);
+        if (text) {
+          return text;
+        }
+      }
+    }
+    const fallbackValue = Object.values(record)
+      .map((val) => extractErrorText(val))
+      .filter((val): val is string => Boolean(val))[0];
+    if (fallbackValue) {
+      return fallbackValue;
+    }
+  }
+  return undefined;
+}
+
+function formatStatusMessage(res: Response): string {
+  const base = `Request failed: ${res.status}`;
+  return res.statusText ? `${base} ${res.statusText}` : base;
+}
 
 export async function apiFetch<T>(
   path: string,
@@ -30,14 +92,12 @@ export async function apiFetch<T>(
   });
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(text || `Request failed: ${res.status}`);
+    throw new Error(await getErrorMessage(res));
   }
   const contentType = res.headers.get("content-type");
   if (contentType && contentType.includes("application/json")) {
     return (await res.json()) as T;
   }
-  // @ts-expect-error allow non-json responses
   return undefined as T;
 }
 
@@ -61,6 +121,19 @@ export const AuthAPI = {
   me: (token: string) => apiFetch(`/auth/me`, { token }),
 };
 
+export interface CampaignPayload {
+  title: string;
+  description: string;
+  goal_amount: number;
+  duration_months: "1" | "3" | "6" | "12";
+  category?: string;
+  image_url?: string;
+  video_url?: string;
+  story?: string;
+}
+
+export type CampaignUpdatePayload = Partial<CampaignPayload>;
+
 export const CampaignAPI = {
   list: (params?: { status?: string; featured?: boolean; limit?: number }) => {
     const query = new URLSearchParams();
@@ -83,16 +156,8 @@ export const CampaignAPI = {
     return apiFetch(`/campaigns/spotlight${qs ? `?${qs}` : ""}`);
   },
   get: (id: string | number) => apiFetch(`/campaigns/${id}`),
-  create: (data: {
-    title: string;
-    description: string;
-    goal_amount: number;
-    duration_months: "1" | "3" | "6" | "12";
-    category?: string;
-    image_url?: string;
-    video_url?: string;
-    story?: string;
-  }, token: string) => apiFetch(`/campaigns/`, { method: "POST", body: data, token }),
+  create: (data: CampaignPayload, token: string) =>
+    apiFetch(`/campaigns/`, { method: "POST", body: data, token }),
   createWithImage: (formData: FormData, token: string) => {
     const url = `${API_BASE_URL}/campaigns/with-image`;
     return fetch(url, {
@@ -103,13 +168,12 @@ export const CampaignAPI = {
       body: formData,
     }).then(async (res) => {
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        throw new Error(text || `Request failed: ${res.status}`);
+        throw new Error(await getErrorMessage(res));
       }
       return res.json();
     });
   },
-  update: (id: string | number, data: any, token: string) => 
+  update: (id: string | number, data: CampaignUpdatePayload, token: string) =>
     apiFetch(`/campaigns/${id}`, { method: "PUT", body: data, token }),
   delete: (id: string | number, token: string) => 
     apiFetch(`/campaigns/${id}`, { method: "DELETE", token }),

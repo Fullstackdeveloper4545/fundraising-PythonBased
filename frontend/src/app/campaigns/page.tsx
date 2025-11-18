@@ -11,7 +11,7 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
   
   // If it's a relative path, prepend the backend base URL
   if (imageUrl.startsWith('/uploads/')) {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://0.0.0.0:8000';
     return `${backendUrl}${imageUrl}`;
   }
   
@@ -19,14 +19,18 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
 }
 
 export default async function CampaignsPage() {
-  // Fetch both featured and regular campaigns
-  const [featuredCampaigns, regularCampaigns] = await Promise.all([
-    CampaignAPI.featured(6),
-    CampaignAPI.list({ status: "active", limit: 24 })
-  ]);
-  
-  const featuredItems = Array.isArray(featuredCampaigns) ? featuredCampaigns : [];
-  const regularItems = Array.isArray(regularCampaigns) ? regularCampaigns : [];
+  let featuredItems: Campaign[] = [];
+  let regularItems: Campaign[] = [];
+  try {
+    const [featuredCampaigns, regularCampaigns] = await Promise.all([
+      CampaignAPI.featured(6),
+      CampaignAPI.list({ status: "active", limit: 24 })
+    ]);
+    featuredItems = Array.isArray(featuredCampaigns) ? featuredCampaigns : [];
+    regularItems = Array.isArray(regularCampaigns) ? regularCampaigns : [];
+  } catch (error) {
+    console.error("CampaignsPage: failed to load campaigns", error);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -208,5 +212,4 @@ export default async function CampaignsPage() {
     </div>
   );
 }
-
 

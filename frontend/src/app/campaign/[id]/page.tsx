@@ -1,7 +1,6 @@
 import { CampaignAPI, PaymentAPI, MilestoneAPI, ShoutoutAPI } from "@/lib/api";
 import { use } from "react";
 import type { Campaign, Payment, Milestone, Shoutout } from "@/types/api";
-import Link from "next/link";
 import DonateButton from "@/components/DonateButton";
 import CloseCampaignButton from "@/components/CloseCampaignButton";
 
@@ -14,7 +13,7 @@ function getImageUrl(imageUrl: string | null | undefined): string | null {
   
   // If it's a relative path, prepend the backend base URL
   if (imageUrl.startsWith('/uploads/')) {
-    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://localhost:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace('/api/v1', '') || 'http://0.0.0.0:8000';
     return `${backendUrl}${imageUrl}`;
   }
   
@@ -25,14 +24,46 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
-async function getData(id: string) {
-  const [campaign, payments, milestones, shoutouts] = await Promise.all([
+interface CampaignDetailData {
+  campaign: Campaign;
+  payments: Payment[];
+  milestones: Milestone[];
+  shoutouts: Shoutout[];
+}
+
+async function getData(id: string): Promise<CampaignDetailData | null> {
+  const [campaignResult, paymentsResult, milestonesResult, shoutoutsResult] = await Promise.allSettled([
     CampaignAPI.get(id),
     PaymentAPI.forCampaign(Number(id)),
-    MilestoneAPI.forCampaign(Number(id)).catch(() => []),
-    ShoutoutAPI.forCampaign(Number(id)).catch(() => []),
+    MilestoneAPI.forCampaign(Number(id)),
+    ShoutoutAPI.forCampaign(Number(id)),
   ]);
-  return { campaign, payments, milestones, shoutouts };
+
+  if (campaignResult.status !== "fulfilled") {
+    console.error(`CampaignDetail: failed to load campaign ${id}`, campaignResult.reason);
+    return null;
+  }
+
+  const payments = paymentsResult.status === "fulfilled" ? paymentsResult.value : [];
+  const milestones = milestonesResult.status === "fulfilled" ? milestonesResult.value : [];
+  const shoutouts = shoutoutsResult.status === "fulfilled" ? shoutoutsResult.value : [];
+
+  if (paymentsResult.status === "rejected") {
+    console.error(`CampaignDetail: failed to load payments for campaign ${id}`, paymentsResult.reason);
+  }
+  if (milestonesResult.status === "rejected") {
+    console.error(`CampaignDetail: failed to load milestones for campaign ${id}`, milestonesResult.reason);
+  }
+  if (shoutoutsResult.status === "rejected") {
+    console.error(`CampaignDetail: failed to load shoutouts for campaign ${id}`, shoutoutsResult.reason);
+  }
+
+  return {
+    campaign: campaignResult.value as Campaign,
+    payments: payments as Payment[],
+    milestones: milestones as Milestone[],
+    shoutouts: shoutouts as Shoutout[],
+  };
 }
 
 export default function CampaignDetailPage({ params }: Params) {
@@ -41,9 +72,15 @@ export default function CampaignDetailPage({ params }: Params) {
 }
 
 async function CampaignDetail({ id }: { id: string }) {
-  const { campaign, payments, milestones, shoutouts } = await getData(id) as unknown as {
-    campaign: Campaign; payments: Payment[]; milestones: Milestone[]; shoutouts: Shoutout[];
-  };
+  const data = await getData(id);
+  if (!data) {
+    return (
+      <div className="rounded border p-6 text-center text-gray-600">
+        Unable to load this campaign right now. Please try again later.
+      </div>
+    );
+  }
+  const { campaign, payments, milestones, shoutouts } = data;
   return (
     <div className="space-y-8">
       <div className="grid gap-6 md:grid-cols-2">
