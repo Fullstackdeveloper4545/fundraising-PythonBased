@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_ROOT=${PROJECT_ROOT:-/var/www/fundraising-pythonbased}
+PROJECT_ROOT=${PROJECT_ROOT:-/var/www/fundraising-PythonBased}
 BACKEND_DIR="$PROJECT_ROOT/backend"
 FRONTEND_DIR="$PROJECT_ROOT/frontend"
 VENV_DIR="$BACKEND_DIR/.venv"
