@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, CampaignAPI } from "@/lib/api";
 import type { Campaign, User } from "@/types/api";
 import { useAuth } from "@/context/AuthContext";
 import Swal from "sweetalert2";
@@ -1329,5 +1329,3 @@ function DetailRow({ label, value }: { label: string; value: React.ReactNode }) 
     </div>
   );
 }
-
-
